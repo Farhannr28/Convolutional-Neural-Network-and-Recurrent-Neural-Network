@@ -1,19 +1,18 @@
-import os
+from __future__ import annotations
+
 import json
-from typing import Union, List, Tuple, Dict
+import os
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
-from dotenv import load_dotenv
-
-# Import ENV to stop warning messages from TensorFlow 
-load_dotenv()
-
-from keras import layers, models, losses, optimizers
+import numpy.typing as npt
+from keras import layers, losses, models, optimizers
 from keras.callbacks import History
 from sklearn.metrics import f1_score
 
+
 # ------------------------------------------------------------
-# CNN Model Wrapper -- stores data and contains Tensoflow model
+# CNN Model Wrapper -- stores data and contains TensorFlow model
 # ------------------------------------------------------------
 class CNNModel:
     """
@@ -29,6 +28,12 @@ class CNNModel:
         Size of the kernel for each convolutional layer.
     pooling : str, {"max", "avg"}, default "max"
         Type of pooling layer to use after each convolution.
+    conv_activation : str, default "relu"
+        Activation function for convolutional layers.
+    dense_layers : list[int], default [128]
+        List of units in each Dense layer after flattening.
+    dense_activations : list[str], default ["relu"]
+        List of activations for each Dense layer.
     """
 
     # --------------- Constructor --------------- #
@@ -38,16 +43,31 @@ class CNNModel:
         filters: Union[int, List[int]] = 32,
         kernel_size: Union[int, List[int]] = 3,
         pooling: str = "max",
+        conv_activation: str = "relu",
+        dense_layers: List[int] | None = None,
+        dense_activations: List[str] | None = None,
     ) -> None:
         if isinstance(filters, int):
             filters = [filters] * conv_layers
         if isinstance(kernel_size, int):
             kernel_size = [kernel_size] * conv_layers
 
+        dense_layers = dense_layers or [128]
+        dense_activations = dense_activations or ["relu"]
+
+        if len(dense_layers) != len(dense_activations):
+            raise ValueError(
+                "dense_layers and dense_activations must be the same length"
+            )
+
         self.conv_layers = conv_layers
         self.filters = filters
         self.kernel_size = kernel_size
         self.pooling = pooling.lower()
+        self.conv_activation = conv_activation
+        self.dense_layers = dense_layers
+        self.dense_activations = dense_activations
+
         self.model: models.Model = self._build_model()
 
     # --------------- Model definition --------------- #
@@ -61,7 +81,7 @@ class CNNModel:
                 layers.Conv2D(
                     self.filters[i],
                     self.kernel_size[i],
-                    activation="relu",
+                    activation=self.conv_activation,
                     padding="same",
                     name=f"conv_{i+1}",
                 )
@@ -72,7 +92,12 @@ class CNNModel:
                 model.add(layers.AveragePooling2D(name=f"avgpool_{i+1}"))
 
         model.add(layers.Flatten(name="flatten"))
-        model.add(layers.Dense(128, activation="relu", name="dense_128"))
+
+        for idx, (units, activation) in enumerate(
+            zip(self.dense_layers, self.dense_activations)
+        ):
+            model.add(layers.Dense(units, activation=activation, name=f"dense_{idx+1}"))
+
         model.add(layers.Dense(10, activation="softmax", name="logits"))
         return model
 
@@ -87,10 +112,10 @@ class CNNModel:
 
     def train(
         self,
-        x_train: np.ndarray,
-        y_train: np.ndarray,
-        x_val: np.ndarray,
-        y_val: np.ndarray,
+        x_train: npt.NDArray[Any],
+        y_train: npt.NDArray[Any],
+        x_val: npt.NDArray[Any],
+        y_val: npt.NDArray[Any],
         epochs: int = 2,
         batch_size: int = 64,
     ) -> History:
@@ -104,7 +129,7 @@ class CNNModel:
             verbose=1,
         )
 
-    def evaluate(self, x_test: np.ndarray, y_test: np.ndarray) -> float:
+    def evaluate(self, x_test: npt.NDArray[Any], y_test: npt.NDArray[Any]) -> float:
         """ Evaluate the model using macro-F1 score. """
         y_pred_logits = self.model.predict(x_test, verbose=0)
         y_pred = np.argmax(y_pred_logits, axis=1)
@@ -129,10 +154,9 @@ class CNNModel:
         print(f"Model loaded from {full_path}")
 
     # --------------- Save / Load History --------------- #
-    def save_history(self, history: Dict[str, List[float]], filename: str = "cnn_history.json") -> str:
-        """
-        Save training history (loss, val_loss, etc.) to JSON file.
-        """
+    def save_history(
+        self, history: Dict[str, List[float]], filename: str = "cnn_history.json"
+    ) -> str:
         save_dir = os.path.join(os.getcwd(), "saved_models")
         os.makedirs(save_dir, exist_ok=True)
         full_path = os.path.join(save_dir, filename)
@@ -141,31 +165,33 @@ class CNNModel:
         print(f"Training history saved to {full_path}")
         return full_path
 
-    def load_history(self, filename: str = "cnn_history.json") -> Dict[str, List[float]]:
-        """
-        Load training history from JSON file.
-        """
+    def load_history(
+        self, filename: str = "cnn_history.json"
+    ) -> Dict[str, List[float]]:
         full_path = os.path.join(os.getcwd(), "saved_models", filename)
         if not os.path.exists(full_path):
             raise FileNotFoundError(f"No history file found at {full_path}")
         with open(full_path, "r") as f:
-            history = json.load(f)
+            history: Dict[str, List[float]] = json.load(f) 
         print(f"Training history loaded from {full_path}")
         return history
 
 
+# ------------------------------------------------------------
+# Class to help train CNN Model 
+# ------------------------------------------------------------
 class TrainCNN:
-    """ Utility class for dataset handling and model training."""
+    """ Utility class for dataset handling and model training. """
 
     # --------------- Constructor --------------- #
     def __init__(
         self,
-        x_train: np.ndarray,
-        y_train: np.ndarray,
-        x_val: np.ndarray,
-        y_val: np.ndarray,
-        x_test: np.ndarray,
-        y_test: np.ndarray,
+        x_train: npt.NDArray[Any],
+        y_train: npt.NDArray[Any],
+        x_val: npt.NDArray[Any],
+        y_val: npt.NDArray[Any],
+        x_test: npt.NDArray[Any],
+        y_test: npt.NDArray[Any],
     ) -> None:
         self.x_train = x_train
         self.y_train = y_train
@@ -181,9 +207,24 @@ class TrainCNN:
         history_name: str = "cnn_history.json",
         epochs: int = 2,
         batch_size: int = 64,
+        conv_layers: int = 2,
+        filters: Union[int, List[int]] = 32,
+        kernel_size: Union[int, List[int]] = 3,
+        pooling: str = "max",
+        conv_activation: str = "relu",
+        dense_layers: List[int] | None = None,
+        dense_activations: List[str] | None = None,
     ) -> Tuple[float, Dict[str, List[float]]]:
         """ Build, train, save, and evaluate the CNN, and save history to file. """
-        model = CNNModel()
+        model = CNNModel(
+            conv_layers=conv_layers,
+            filters=filters,
+            kernel_size=kernel_size,
+            pooling=pooling,
+            conv_activation=conv_activation,
+            dense_layers=dense_layers or [128],
+            dense_activations=dense_activations or ["relu"],
+        )
         model.compile()
         history: History = model.train(
             self.x_train,
@@ -209,32 +250,38 @@ if __name__ == "__main__":
     # Load CIFAR-10 dataset
     (x_train_full, y_train_full), (x_test, y_test) = cifar10.load_data()
 
-    # Normalize images to [0,1]
+    # Normalise images to [0,1]
     x_train_full = x_train_full.astype("float32") / 255.0
     x_test = x_test.astype("float32") / 255.0
 
-    # Flatten labels (from shape (n,1) to (n,))
+    # Flatten labels
     y_train_full = y_train_full.flatten()
     y_test = y_test.flatten()
 
-    # Split into train and validation sets (4:1 ratio)
+    # 4:1 split for train/val
     val_size = int(len(x_train_full) * 0.2)
-    x_val = x_train_full[:val_size]
-    y_val = y_train_full[:val_size]
-    x_train = x_train_full[val_size:]
-    y_train = y_train_full[val_size:]
-
-    print("Train shape:", x_train.shape, y_train.shape)
-    print("Validation shape:", x_val.shape, y_val.shape)
-    print("Test shape:", x_test.shape, y_test.shape)
+    x_val, x_train = x_train_full[:val_size], x_train_full[val_size:]
+    y_val, y_train = y_train_full[:val_size], y_train_full[val_size:]
 
     trainer = TrainCNN(x_train, y_train, x_val, y_val, x_test, y_test)
-    f1_score, history = trainer.run(epochs=5, batch_size=64)
 
-    print(f"Final Macro F1 Score on test set: {f1_score:.4f}")
+    f1, history = trainer.run(
+        epochs=5,
+        batch_size=64,
+        conv_layers=2,
+        filters=[32, 64],
+        kernel_size=[3, 3],
+        pooling="max",
+        conv_activation="relu",
+        dense_layers=[256, 128],
+        dense_activations=["relu", "relu"],
+    )
+
+    print(f"Final Macro F1 Score on test set: {f1:.4f}")
 
     try:
         from src.utils.plot_utils import plot_loss
+
         plot_loss(history)
     except ImportError:
         print("matplotlib not installed or plot_utils missing, skipping loss plot.")
