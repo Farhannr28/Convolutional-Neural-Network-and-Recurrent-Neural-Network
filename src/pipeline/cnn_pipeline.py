@@ -64,7 +64,7 @@ class CNNSuite:
         self.history_path = self.save_dir / "cnn_history.json"
 
         self.data: Dict[str, Tuple[np.ndarray, np.ndarray]] = {}
-        self._history: Dict[str, List[float]] | None = None
+        self.history: Dict[str, List[float]] | None = None
 
     # --------------- Data handling --------------- #
     def load_data(self) -> None:
@@ -97,7 +97,7 @@ class CNNSuite:
             epochs=epochs,
             batch_size=batch_size,
         )
-        self._history = history
+        self.history = history
         print(f"[DONE] Training finished - macro F1 on test (Keras): {f1:.4f}")
 
     # --------------- Evaluation utilities --------------- #
@@ -133,16 +133,16 @@ class CNNSuite:
 
     # --------------- History handling --------------- #
     def load_history(self) -> Dict[str, List[float]]:
-        if self._history is not None:
+        if self.history is not None:
             print("[INFO] Using cached training history.")
-            return self._history
+            return self.history
         if not self.history_path.exists():
             raise FileNotFoundError(self.history_path)
         print(f"[INFO] Loading training history from {self.history_path}...")
         with open(self.history_path, "r") as f:
-            self._history = json.load(f)
+            self.history = json.load(f)
         print("[INFO] Training history loaded.")
-        return self._history
+        return self.history
 
     def plot_history(self) -> None:
         print("[START] Plotting training loss and accuracy history...")

@@ -1,1 +1,1 @@
-from .plot_utils import plot_loss   
+from .plot_utils import plot_loss, plot_multi_loss   
