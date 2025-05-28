@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 from sklearn.metrics import f1_score
@@ -80,12 +80,22 @@ class CNNSuite:
             print(f"  - {k}: {x.shape}, {y.shape}")
 
     # --------------- Training --------------- #
-    def train(self, epochs: int = 5, batch_size: int = 64) -> None:
+    def train(
+        self,
+        epochs: int = 5,
+        batch_size: int = 64,
+        conv_layers: int = 2,
+        filters: Union[int, List[int]] = 32,
+        kernel_size: Union[int, List[int]] = 3,
+        pooling: str = "max",
+        conv_activation: str = "relu",
+        dense_layers: List[int] | None = None,
+        dense_activations: List[str] | None = None,
+    ) -> None:
         if not self.data:
             raise RuntimeError("Call load_data() first")
-        print(
-            f"[START] Training started for {epochs} epochs, batch size {batch_size}..."
-        )
+        print(f"[START] Training with {filters} filters, {epochs} epochs...")
+
         x_tr, y_tr = self.data["train"]
         x_val, y_val = self.data["val"]
         x_test, y_test = self.data["test"]
@@ -96,6 +106,13 @@ class CNNSuite:
             history_name=self.history_path.name,
             epochs=epochs,
             batch_size=batch_size,
+            conv_layers=conv_layers,
+            filters=filters,
+            kernel_size=kernel_size,
+            pooling=pooling,
+            conv_activation=conv_activation,
+            dense_layers=dense_layers,
+            dense_activations=dense_activations,
         )
         self.history = history
         print(f"[DONE] Training finished - macro F1 on test (Keras): {f1:.4f}")
