@@ -25,6 +25,7 @@ class CNNModel:
         filters: Union[int, List[int]] = 32,
         kernel_size: Union[int, List[int]] = 3,
         pooling: str = "max",
+        pool_size: int = 2,  
         conv_activation: str = "relu",
         dense_layers: List[int] | None = None,
         dense_activations: List[str] | None = None,
@@ -46,6 +47,7 @@ class CNNModel:
         self.filters = filters
         self.kernel_size = kernel_size
         self.pooling = pooling.lower()
+        self.pool_size = pool_size
         self.conv_activation = conv_activation
         self.dense_layers = dense_layers
         self.dense_activations = dense_activations
@@ -67,9 +69,9 @@ class CNNModel:
                 )
             )
             if self.pooling == "max":
-                model.add(layers.MaxPooling2D(name=f"maxpool_{i+1}"))
+                model.add(layers.MaxPooling2D(pool_size=self.pool_size, name=f"maxpool_{i+1}"))
             else:
-                model.add(layers.AveragePooling2D(name=f"avgpool_{i+1}"))
+                model.add(layers.AveragePooling2D(pool_size=self.pool_size, name=f"avgpool_{i+1}"))  
 
         model.add(layers.Flatten(name="flatten"))
 
@@ -181,6 +183,7 @@ class TrainCNN:
         filters: Union[int, List[int]] = 32,
         kernel_size: Union[int, List[int]] = 3,
         pooling: str = "max",
+        pool_size: int = 2,
         conv_activation: str = "relu",
         dense_layers: List[int] | None = None,
         dense_activations: List[str] | None = None,
@@ -190,6 +193,7 @@ class TrainCNN:
             filters=filters,
             kernel_size=kernel_size,
             pooling=pooling,
+            pool_size=pool_size, 
             conv_activation=conv_activation,
             dense_layers=dense_layers or [128],
             dense_activations=dense_activations or ["relu"],
@@ -208,7 +212,6 @@ class TrainCNN:
         model.save_history(history.history, filename=history_name)
         f1: float = model.evaluate(self.x_test, self.y_test)
         return f1, history.history
-
 
 # ------------------------------------------------------------
 # Quick Test
