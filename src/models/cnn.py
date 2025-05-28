@@ -17,26 +17,8 @@ from sklearn.metrics import f1_score
 class CNNModel:
     """
     Convolutional Neural Network model wrapper.
-
-    Parameters
-    ----------
-    conv_layers : int, default 2
-        Number of convolutional layers.
-    filters : int | list[int], default 32
-        Number of filters for each convolutional layer.
-    kernel_size : int | list[int], default 3
-        Size of the kernel for each convolutional layer.
-    pooling : str, {"max", "avg"}, default "max"
-        Type of pooling layer to use after each convolution.
-    conv_activation : str, default "relu"
-        Activation function for convolutional layers.
-    dense_layers : list[int], default [128]
-        List of units in each Dense layer after flattening.
-    dense_activations : list[str], default ["relu"]
-        List of activations for each Dense layer.
     """
 
-    # --------------- Constructor --------------- #
     def __init__(
         self,
         conv_layers: int = 2,
@@ -70,9 +52,7 @@ class CNNModel:
 
         self.model: models.Model = self._build_model()
 
-    # --------------- Model definition --------------- #
     def _build_model(self) -> models.Model:
-        """ Create a CNN architecture using TensorFlow. """
         model = models.Sequential(name="cnn_if3270")
         model.add(layers.Input(shape=(32, 32, 3)))
 
@@ -101,9 +81,7 @@ class CNNModel:
         model.add(layers.Dense(10, activation="softmax", name="logits"))
         return model
 
-    # --------------- Compilation / Training / Evaluation --------------- #
     def compile(self) -> None:
-        """ Configure the model. """
         self.model.compile(
             loss=losses.SparseCategoricalCrossentropy(from_logits=False),
             optimizer=optimizers.Adam(),
@@ -119,7 +97,6 @@ class CNNModel:
         epochs: int = 2,
         batch_size: int = 64,
     ) -> History:
-        """ Train the model. """
         return self.model.fit(
             x_train,
             y_train,
@@ -130,14 +107,12 @@ class CNNModel:
         )
 
     def evaluate(self, x_test: npt.NDArray[Any], y_test: npt.NDArray[Any]) -> float:
-        """ Evaluate the model using macro-F1 score. """
         y_pred_logits = self.model.predict(x_test, verbose=0)
         y_pred = np.argmax(y_pred_logits, axis=1)
         f1: float = f1_score(y_test, y_pred, average="macro")
         print("Test Macro F1 Score:", f1)
         return f1
 
-    # --------------- Save / Load --------------- #
     def save(self, filename: str = "cnn.keras") -> str:
         save_dir = os.path.join(os.getcwd(), "saved_models")
         os.makedirs(save_dir, exist_ok=True)
@@ -153,7 +128,6 @@ class CNNModel:
         self.model = models.load_model(full_path, compile=False)
         print(f"Model loaded from {full_path}")
 
-    # --------------- Save / Load History --------------- #
     def save_history(
         self, history: Dict[str, List[float]], filename: str = "cnn_history.json"
     ) -> str:
@@ -172,18 +146,15 @@ class CNNModel:
         if not os.path.exists(full_path):
             raise FileNotFoundError(f"No history file found at {full_path}")
         with open(full_path, "r") as f:
-            history: Dict[str, List[float]] = json.load(f) 
+            history: Dict[str, List[float]] = json.load(f)
         print(f"Training history loaded from {full_path}")
         return history
 
 
 # ------------------------------------------------------------
-# Class to help train CNN Model 
+# Class to help train CNN Model
 # ------------------------------------------------------------
 class TrainCNN:
-    """ Utility class for dataset handling and model training. """
-
-    # --------------- Constructor --------------- #
     def __init__(
         self,
         x_train: npt.NDArray[Any],
@@ -200,7 +171,6 @@ class TrainCNN:
         self.x_test = x_test
         self.y_test = y_test
 
-    # --------------- Run Model --------------- #
     def run(
         self,
         save_name: str = "cnn.keras",
@@ -215,7 +185,6 @@ class TrainCNN:
         dense_layers: List[int] | None = None,
         dense_activations: List[str] | None = None,
     ) -> Tuple[float, Dict[str, List[float]]]:
-        """ Build, train, save, and evaluate the CNN, and save history to file. """
         model = CNNModel(
             conv_layers=conv_layers,
             filters=filters,
@@ -247,18 +216,14 @@ class TrainCNN:
 if __name__ == "__main__":
     from keras.datasets import cifar10
 
-    # Load CIFAR-10 dataset
     (x_train_full, y_train_full), (x_test, y_test) = cifar10.load_data()
 
-    # Normalise images to [0,1]
     x_train_full = x_train_full.astype("float32") / 255.0
     x_test = x_test.astype("float32") / 255.0
 
-    # Flatten labels
     y_train_full = y_train_full.flatten()
     y_test = y_test.flatten()
 
-    # 4:1 split for train/val
     val_size = int(len(x_train_full) * 0.2)
     x_val, x_train = x_train_full[:val_size], x_train_full[val_size:]
     y_val, y_train = y_train_full[:val_size], y_train_full[val_size:]
