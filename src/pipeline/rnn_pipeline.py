@@ -14,13 +14,10 @@ from sklearn.metrics import f1_score
 MAX_VOCAB_SIZE = 10000
 SEQUENCE_LENGTH = 128
 EMBEDDING_DIM = 128
-RNN_UNITS = 72
-RNN_LAYERS = 2
 DROPOUT_RATE = 0.5
 DENSE_LAYERS = [64, 32]
 DENSE_ACTIVATIONS = ["relu", "relu"]
 NUM_CLASSES = 3
-BIDIRECTIONAL = True
 BATCH_SIZE = 64
 EPOCHS = 50
 
@@ -77,15 +74,15 @@ class RNNSuite:
         return label_encoder, y_train, y_val, y_test
 
     # === TRAINING ===
-    def train_rnn(self, x_train, y_train, x_val, y_val, x_test, y_test, vocab_size):
+    def train_rnn(self, x_train, y_train, x_val, y_val, x_test, y_test, vocab_size, rnn_layers=2, rnn_units=64, bidirectional=True):
         trainer = TrainRNN(x_train, y_train, x_val, y_val, x_test, y_test)
         f1, history = trainer.run(
             vocab_size=vocab_size,
             input_length=SEQUENCE_LENGTH,
             embedding_dim=EMBEDDING_DIM,
-            rnn_units=RNN_UNITS,
-            rnn_layers=RNN_LAYERS,
-            bidirectional=BIDIRECTIONAL,
+            rnn_units=rnn_units,
+            rnn_layers=rnn_layers,
+            bidirectional=bidirectional,
             dropout_rate=DROPOUT_RATE,
             dense_layers=DENSE_LAYERS,
             dense_activations=DENSE_ACTIVATIONS,
@@ -96,10 +93,6 @@ class RNNSuite:
             batch_size=BATCH_SIZE
         )
         print(f"[DONE] Final Macro F1 Score (Keras RNN): {f1:.6f}")
-        try:
-            plot_loss(history)
-        except:
-            print("[WARN] Plotting failed (matplotlib or utils missing)")
         return f1
 
     # === SCRATCH INFERENCE ===
@@ -145,9 +138,6 @@ class RNNSuite:
 
         print("[INFO] Running ScratchRNN forward pass...")
         self.evaluate_scratch_model(x_test, y_test)
-
-        print("[START] Plotting training history...")
-        self.plot_history
 
 if __name__ == "__main__":
     print("[MAIN] RNNSuite demo started.")
