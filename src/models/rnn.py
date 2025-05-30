@@ -233,6 +233,7 @@ if __name__ == "__main__":
     import pandas as pd
     import numpy as np
     import tensorflow as tf
+    import pickle
     from sklearn.preprocessing import LabelEncoder
 
     # Constants
@@ -261,6 +262,10 @@ if __name__ == "__main__":
     # Adapt the vectorizer on training data
     vectorizer.adapt(df_train["text"].values)
 
+    # Save Vectorizer
+    with open("saved_models/rnn_vectorizer.pkl", "wb") as f:
+        pickle.dump(vectorizer, f)
+
     # Convert texts to integer sequences
     x_train = vectorizer(df_train["text"].values).numpy()
     x_val = vectorizer(df_valid["text"].values).numpy()
@@ -282,7 +287,7 @@ if __name__ == "__main__":
         vocab_size = vocab_size,
         input_length = SEQUENCE_LENGTH,
         embedding_dim = 128,
-        rnn_units = 64,
+        rnn_units = 72,
         rnn_layers = 2,
         bidirectional = True,
         dropout_rate = 0.5,
@@ -291,7 +296,7 @@ if __name__ == "__main__":
         num_classes = 3,
         save_name = "base_rnn.keras",
         history_name = "base_rnn_history.json",
-        epochs = 300,
+        epochs = 200,
         batch_size = 64,
     )
 
