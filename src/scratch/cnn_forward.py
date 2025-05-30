@@ -70,7 +70,7 @@ class Conv2DLayer:
         raise ValueError(f"Unsupported activation '{self.activation}'")
 
     def forward(self, x: npt.NDArray[Any]) -> npt.NDArray[np.float32]:
-        N, H, W, _ = x.shape  # type: ignore[unused-ignore]
+        N, H, W, _ = x.shape
         x_pad = np.pad(
             x,
             (
@@ -102,7 +102,7 @@ class PoolingLayer:
         self.mode = mode
 
     def forward(self, x: npt.NDArray[Any]) -> npt.NDArray[Any]:
-        N, H, W, C = x.shape  # type: ignore[unused-ignore]
+        N, H, W, C = x.shape 
         assert H % 2 == 0 and W % 2 == 0, "Input dims must be even for 2×2 pooling"
         x_resh = x.reshape(N, H // 2, 2, W // 2, 2, C)
         if self.mode == "max":
