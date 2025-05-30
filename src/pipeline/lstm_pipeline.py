@@ -17,48 +17,32 @@ from src.scratch.lstm_forward import ScratchLSTM
 from src.utils.plot_utils import plot_loss
 
 
-# ------------------------------------------------------------
-# Data loader (train / val / test split)
-# ------------------------------------------------------------
-def load_nusax_sentiment() -> Tuple[
-    Tuple[np.ndarray, np.ndarray],
-    Tuple[np.ndarray, np.ndarray],
-    Tuple[np.ndarray, np.ndarray],
-]:
+def load_nusax_sentiment(
+    train_path = "https://raw.githubusercontent.com/IndoNLP/nusax/refs/heads/main/datasets/sentiment/indonesian/train.csv",
+    valid_path = "https://raw.githubusercontent.com/IndoNLP/nusax/refs/heads/main/datasets/sentiment/indonesian/valid.csv",
+    test_path = "https://raw.githubusercontent.com/IndoNLP/nusax/refs/heads/main/datasets/sentiment/indonesian/test.csv"
+) -> Tuple[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]:
     print("[INFO] Loading train/val/test from individual CSVs...")
 
-    df_train = pd.read_csv(
-        "https://raw.githubusercontent.com/IndoNLP/nusax/refs/heads/main/datasets/sentiment/indonesian/train.csv"
-    )
-    df_val = pd.read_csv(
-        "https://raw.githubusercontent.com/IndoNLP/nusax/refs/heads/main/datasets/sentiment/indonesian/valid.csv"
-    )
-    df_test = pd.read_csv(
-        "https://raw.githubusercontent.com/IndoNLP/nusax/refs/heads/main/datasets/sentiment/indonesian/test.csv"
-    )
+    df_train = pd.read_csv(train_path)
+    df_val = pd.read_csv(valid_path)
+    df_test = pd.read_csv(test_path)
 
-    all_text = (
-        pd.concat([df_train["text"], df_val["text"], df_test["text"]])
-        .astype(str)
-        .values
-    )
+    all_text = pd.concat([df_train['text'], df_val['text'], df_test['text']]).astype(str).values
     vectorizer = TextVectorization(max_tokens=10000, output_sequence_length=100)
     vectorizer.adapt(all_text)
 
     le = LabelEncoder()
-    le.fit(pd.concat([df_train["label"], df_val["label"], df_test["label"]]))
+    le.fit(pd.concat([df_train['label'], df_val['label'], df_test['label']]))
 
     def prepare(df):
-        X = vectorizer(df["text"].astype(str).values).numpy()
-        y = le.transform(df["label"].values)
+        X = vectorizer(df['text'].astype(str).values).numpy()
+        y = le.transform(df['label'].values)
         return X, y
 
     return prepare(df_train), prepare(df_val), prepare(df_test)
 
 
-# ------------------------------------------------------------
-# Pipeline wrapper class
-# ------------------------------------------------------------
 class LSTMSuite:
     def __init__(
         self, save_dir: str = "saved_models", model_name: str = "lstm_model.keras"
@@ -76,18 +60,16 @@ class LSTMSuite:
         self.vectorizer: TextVectorization | None = None
         self.label_encoder: LabelEncoder | None = None
 
-    def load_data(self) -> None:
+    def load_data(self,
+                  train_path="https://raw.githubusercontent.com/IndoNLP/nusax/refs/heads/main/datasets/sentiment/indonesian/train.csv",
+                  val_path="https://raw.githubusercontent.com/IndoNLP/nusax/refs/heads/main/datasets/sentiment/indonesian/valid.csv",
+                  test_path="https://raw.githubusercontent.com/IndoNLP/nusax/refs/heads/main/datasets/sentiment/indonesian/test.csv"
+                  ) -> None:
         print("[START] Loading dataset...")
 
-        df_train = pd.read_csv(
-            "https://raw.githubusercontent.com/IndoNLP/nusax/refs/heads/main/datasets/sentiment/indonesian/train.csv"
-        )
-        df_val = pd.read_csv(
-            "https://raw.githubusercontent.com/IndoNLP/nusax/refs/heads/main/datasets/sentiment/indonesian/valid.csv"
-        )
-        df_test = pd.read_csv(
-            "https://raw.githubusercontent.com/IndoNLP/nusax/refs/heads/main/datasets/sentiment/indonesian/test.csv"
-        )
+        df_train = pd.read_csv(train_path)
+        df_val = pd.read_csv(val_path)
+        df_test = pd.read_csv(test_path)
 
         all_text = (
             pd.concat([df_train["text"], df_val["text"], df_test["text"]])
@@ -174,16 +156,14 @@ class LSTMSuite:
         print(f"[DONE] Macro F1-score (Keras): {score:.4f}")
         return score
 
-    def evaluate_scratch(self) -> float:
+    def evaluate_scratch(self, test_path = "https://raw.githubusercontent.com/IndoNLP/nusax/refs/heads/main/datasets/sentiment/indonesian/test.csv") -> float:
         if self.vectorizer is None or self.label_encoder is None:
             raise RuntimeError(
                 "Vectorizer or LabelEncoder not initialized. Call load_data() first."
             )
 
         print("[START] Loading and preparing test data from NusaX...")
-        df_test = pd.read_csv(
-            "https://raw.githubusercontent.com/IndoNLP/nusax/refs/heads/main/datasets/sentiment/indonesian/test.csv"
-        )
+        df_test = pd.read_csv(test_path)
         texts = df_test["text"].astype(str).values
         labels = self.label_encoder.transform(df_test["label"].values)
 

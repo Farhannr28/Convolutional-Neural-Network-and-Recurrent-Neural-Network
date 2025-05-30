@@ -56,7 +56,7 @@ class LSTMModel:
         for idx, (units, act) in enumerate(zip(dense_units, dense_activations)):
             model.add(layers.Dense(units, activation=act, name=f"dense_{idx+1}"))
 
-        model.add(layers.Dense(3, activation="softmax", name="output"))  # 3 kelas
+        model.add(layers.Dense(3, activation="softmax", name="output"))
         return model
 
     def compile(self):
@@ -99,9 +99,8 @@ class LSTMModel:
             json.dump(history, f)
         return path
 
-
 # def load_nusax_sentiment(path: str) -> Tuple[np.ndarray, np.ndarray]:
-#     df = pd.read_csv(path, sep="\t")
+#     df = pd.read_csv(path)
 #     texts = df["text"].astype(str).values
 #     labels = df["label"].values
 #     le = LabelEncoder()
@@ -133,5 +132,4 @@ class LSTMModel:
 #     return f1, history.history
 
 # if __name__ == "__main__":
-#     # Ganti dengan path file TSV dari NusaX-Sentiment
 #     run_training("indonesia.tsv")
